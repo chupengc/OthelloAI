@@ -10,7 +10,7 @@ import time
 from othello_shared import find_lines, get_possible_moves, get_score, play_move
 
 # Global variable to store cached states
-states = {}
+cached = {}
 
 
 def eprint(*args,
@@ -50,12 +50,12 @@ def minimax_min_node(board, color, limit, caching=0):
     for move in moves:
         new_board = play_move(board, opponent, move[0], move[1])
         # check if state is cached
-        if caching == 1 and new_board in states:
-            max_move, max_utility = states[new_board]
+        if caching == 1 and new_board in cached:
+            max_move, max_utility = cached[new_board]
         else:
             max_move, max_utility = minimax_max_node(new_board, color,
                                                      limit - 1, caching)
-            states[new_board] = max_move, max_utility
+            cached[new_board] = max_move, max_utility
 
         if max_utility < min_utility:
             min_utility = max_utility
@@ -78,12 +78,12 @@ def minimax_max_node(board, color, limit,
     for move in moves:
         new_board = play_move(board, color, move[0], move[1])
         # check if state is cached
-        if caching == 1 and new_board in states:
-            min_move, min_utility = states[new_board]
+        if caching == 1 and new_board in cached:
+            min_move, min_utility = cached[new_board]
         else:
             min_move, min_utility = minimax_min_node(new_board, color,
                                                      limit - 1, caching)
-            states[new_board] = min_move, min_utility
+            cached[new_board] = min_move, min_utility
 
         if min_utility > max_utiltiy:
             max_utiltiy = min_utility
@@ -121,24 +121,38 @@ def alphabeta_min_node(board, color, alpha, beta, limit, caching=0, ordering=0):
     opponent = 1 if color == 2 else 2
     min_utiltity = float("inf")
     min_move = None
+    sorted_moves = []
+    unsorted_moves = []
 
     moves = get_possible_moves(board, opponent)
     if not moves or limit == 0:
         return min_move, compute_utility(board, color)
 
-    # sorted_moves = []
     for move in moves:
         new_board = play_move(board, opponent, move[0], move[1])
-        # utility = compute_utility(new_board, color)
-        # sorted_moves.append()
+        utility = compute_utility(new_board, color)
+        sorted_moves.append((utility, (move, new_board)))
+        unsorted_moves.append((move, new_board))
+    sorted_moves = sorted(sorted_moves, key=lambda tup: tup[0])
+    sorted_moves = [tup[1] for tup in sorted_moves]  # list of (move, board)
+
+    if ordering == 1:
+        moves = sorted_moves
+    else:
+        moves = unsorted_moves
+
+    for pair in moves:
+        new_board = pair[1]
+        move = pair[0]
+
         # check if state is cached
-        if caching == 1 and new_board in states:
-            max_move, max_utiltiy = states[new_board]
+        if caching == 1 and new_board in cached:
+            max_move, max_utiltiy = cached[new_board]
         else:
             max_move, max_utiltiy = alphabeta_max_node(new_board, color, alpha,
                                                        beta, limit - 1, caching,
                                                        ordering)
-            states[new_board] = max_move, max_utiltiy
+            cached[new_board] = max_move, max_utiltiy
 
         if max_utiltiy < min_utiltity:
             min_utiltity = max_utiltiy
@@ -156,6 +170,8 @@ def alphabeta_max_node(board, color, alpha, beta, limit, caching=0, ordering=0):
     # IMPLEMENT (and replace the line below)
     max_utility = -float("inf")
     max_move = None
+    sorted_moves = []
+    unsorted_moves = []
 
     moves = get_possible_moves(board, color)
     if not moves or limit == 0:
@@ -163,14 +179,29 @@ def alphabeta_max_node(board, color, alpha, beta, limit, caching=0, ordering=0):
 
     for move in moves:
         new_board = play_move(board, color, move[0], move[1])
+        utility = compute_utility(new_board, color)
+        sorted_moves.append((utility, (move, new_board)))
+        unsorted_moves.append((move, new_board))
+    sorted_moves = sorted(sorted_moves, key=lambda tup: tup[0], reverse=True)
+    sorted_moves = [tup[1] for tup in sorted_moves]  # list of (move, board)
+
+    if ordering == 1:
+        moves = sorted_moves
+    else:
+        moves = unsorted_moves
+
+    for pair in moves:
+        new_board = pair[1]
+        move = pair[0]
+
         # check if state is cached
-        if caching == 1 and new_board in states:
-            min_move, min_utility = states[new_board]
+        if caching == 1 and new_board in cached:
+            min_move, min_utility = cached[new_board]
         else:
             min_move, min_utility = alphabeta_min_node(new_board, color, alpha,
                                                        beta, limit - 1, caching,
                                                        ordering)
-            states[new_board] = min_move, min_utility
+            cached[new_board] = min_move, min_utility
 
         if min_utility > max_utility:
             max_utility = min_utility
