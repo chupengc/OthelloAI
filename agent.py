@@ -9,6 +9,9 @@ import time
 # You can use the functions in othello_shared to write your AI
 from othello_shared import find_lines, get_possible_moves, get_score, play_move
 
+# Global variable to store cached states
+states = {}
+
 
 def eprint(*args,
            **kwargs):  # for debugging, as it will print to sterr and not stdout
@@ -41,12 +44,19 @@ def minimax_min_node(board, color, limit, caching=0):
 
     # get all moves for opponent
     moves = get_possible_moves(board, opponent)
-    if not moves:
+    if not moves or limit == 0:
         return min_move, compute_utility(board, color)
 
     for move in moves:
         new_board = play_move(board, opponent, move[0], move[1])
-        max_move, max_utility = minimax_max_node(new_board, color, limit, caching)
+        # check if state is cached
+        if caching == 1 and new_board in states:
+            max_move, max_utility = states[new_board]
+        else:
+            max_move, max_utility = minimax_max_node(new_board, color,
+                                                     limit - 1, caching)
+            states[new_board] = max_move, max_utility
+
         if max_utility < min_utility:
             min_utility = max_utility
             min_move = move
@@ -62,12 +72,19 @@ def minimax_max_node(board, color, limit,
 
     # get all moves for max player
     moves = get_possible_moves(board, color)
-    if not moves:
+    if not moves or limit == 0:
         return max_move, compute_utility(board, color)
 
     for move in moves:
         new_board = play_move(board, color, move[0], move[1])
-        min_move, min_utility = minimax_min_node(new_board, color, limit, caching)
+        # check if state is cached
+        if caching == 1 and new_board in states:
+            min_move, min_utility = states[new_board]
+        else:
+            min_move, min_utility = minimax_min_node(new_board, color,
+                                                     limit - 1, caching)
+            states[new_board] = min_move, min_utility
+
         if min_utility > max_utiltiy:
             max_utiltiy = min_utility
             max_move = move
@@ -97,15 +114,74 @@ def select_move_minimax(board, color, limit, caching=0):
 
     return move
 
+
 ############ ALPHA-BETA PRUNING #####################
 def alphabeta_min_node(board, color, alpha, beta, limit, caching=0, ordering=0):
     # IMPLEMENT (and replace the line below)
-    return ((0, 0), 0)  # change this!
+    opponent = 1 if color == 2 else 2
+    min_utiltity = float("inf")
+    min_move = None
+
+    moves = get_possible_moves(board, opponent)
+    if not moves or limit == 0:
+        return min_move, compute_utility(board, color)
+
+    # sorted_moves = []
+    for move in moves:
+        new_board = play_move(board, opponent, move[0], move[1])
+        # utility = compute_utility(new_board, color)
+        # sorted_moves.append()
+        # check if state is cached
+        if caching == 1 and new_board in states:
+            max_move, max_utiltiy = states[new_board]
+        else:
+            max_move, max_utiltiy = alphabeta_max_node(new_board, color, alpha,
+                                                       beta, limit - 1, caching,
+                                                       ordering)
+            states[new_board] = max_move, max_utiltiy
+
+        if max_utiltiy < min_utiltity:
+            min_utiltity = max_utiltiy
+            min_move = move
+
+        if min_utiltity <= alpha:
+            return min_move, min_utiltity
+
+        beta = min(min_utiltity, beta)
+
+    return min_move, min_utiltity
 
 
 def alphabeta_max_node(board, color, alpha, beta, limit, caching=0, ordering=0):
     # IMPLEMENT (and replace the line below)
-    return ((0, 0), 0)  # change this!
+    max_utility = -float("inf")
+    max_move = None
+
+    moves = get_possible_moves(board, color)
+    if not moves or limit == 0:
+        return max_move, compute_utility(board, color)
+
+    for move in moves:
+        new_board = play_move(board, color, move[0], move[1])
+        # check if state is cached
+        if caching == 1 and new_board in states:
+            min_move, min_utility = states[new_board]
+        else:
+            min_move, min_utility = alphabeta_min_node(new_board, color, alpha,
+                                                       beta, limit - 1, caching,
+                                                       ordering)
+            states[new_board] = min_move, min_utility
+
+        if min_utility > max_utility:
+            max_utility = min_utility
+            max_move = move
+
+        if max_utility >= beta:
+            return max_move, max_utility
+
+        alpha = max(max_utility, alpha)
+
+    return max_move, max_utility
 
 
 def select_move_alphabeta(board, color, limit, caching=0, ordering=0):
@@ -115,16 +191,27 @@ def select_move_alphabeta(board, color, limit, caching=0, ordering=0):
     i is the column and j is the row on the board.
 
     Note that other parameters are accepted by this function:
-    If limit is a positive integer, your code should enfoce a depth limit that is equal to the value of the parameter.
-    Search only to nodes at a depth-limit equal to the limit.  If nodes at this level are non-terminal return a heuristic
-    value (see compute_utility)
-    If caching is ON (i.e. 1), use state caching to reduce the number of state evaluations.
-    If caching is OFF (i.e. 0), do NOT use state caching to reduce the number of state evaluations.
-    If ordering is ON (i.e. 1), use node ordering to expedite pruning and reduce the number of state evaluations.
-    If ordering is OFF (i.e. 0), do NOT use node ordering to expedite pruning and reduce the number of state evaluations.
+    If limit is a positive integer, your code should enfoce a depth limit that
+    is equal to the value of the parameter.
+    Search only to nodes at a depth-limit equal to the limit.  If nodes at this
+    level are non-terminal return a heuristic value (see compute_utility)
+    If caching is ON (i.e. 1), use state caching to reduce the number of state
+    evaluations.
+    If caching is OFF (i.e. 0), do NOT use state caching to reduce the number of
+    state evaluations.
+    If ordering is ON (i.e. 1), use node ordering to expedite pruning and reduce
+    the number of state evaluations.
+    If ordering is OFF (i.e. 0), do NOT use node ordering to expedite pruning
+    and reduce the number of state evaluations.
     """
     # IMPLEMENT (and replace the line below)
-    return (0, 0)  # change this!
+    alpha = -float("inf")
+    beta = float("inf")
+
+    move, utility = alphabeta_max_node(board, color, alpha, beta, limit,
+                                       caching, ordering)
+
+    return move
 
 
 ####################################################
