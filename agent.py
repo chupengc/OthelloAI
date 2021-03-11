@@ -29,8 +29,55 @@ def compute_utility(board, color):
 
 # Better heuristic value of board
 def compute_heuristic(board, color):  # not implemented, optional
+    """
+    The customized heuristic consists of the following components:
+    - Parity: we want to increase the difference between the disk count of our
+        player and that of our opponent as much as possible. Hence, we compute
+        the ratio between the difference of the players' disk count and the
+        total number of disk as part of the heuristic.
+
+    - Corner: a disk at the corner position of the board is valuable due to the
+        fact that a corner disk cannot be flipped by the opponent once placed.
+        Capturing a corner helps secure the stability of the region around it.
+        Therefore, we compute the number of corners occupied by the player and
+        weigh it by the dimension of the board for its strategic advantage.
+
+    - Possible moves: to favour the board where there are more possible legal
+        moves that the player can make, we add the number of possible moves to
+        the heuristic.
+    """
     # IMPLEMENT
-    return 0  # change this!
+    # starting at heuristic 0
+    heur = 0
+    dark_count, light_count = get_score(board)
+    dark_corner, light_corner = 0, 0
+    n = len(board)
+
+    # computes the difference between the disk count of two players
+    parity_sum = dark_count + light_count
+    parity_diff = dark_count - light_count
+    if parity_sum != 0 and color == 1:
+        parity_heur = parity_diff / parity_sum
+        heur += parity_heur * 100
+    elif parity_sum != 0 and color == 2:
+        parity_heur = - parity_diff / parity_sum
+        heur += parity_heur * 100
+
+    # computes the number of corners of the player
+    corners = [board[0][0], board[0][n-1], board[n-1][0], board[n-1][n-1]]
+    for corner in corners:
+        if corner == 1:
+            dark_corner += 1
+        elif corner == 2:
+            light_corner += 1
+    corner_heur = dark_corner * n if color == 1 else light_corner * n
+    heur += corner_heur
+
+    # computes the number of possible moves for the player
+    moves = get_possible_moves(board, color)
+    heur += len(moves)
+
+    return heur
 
 
 ############ MINIMAX ###############################
